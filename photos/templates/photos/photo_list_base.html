@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+{% load i18n static bootstrap4 photo_tags fb_versions %}
+
+{% block bootstrap4_extra_head %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/photolist.css' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css" type="text/css" media="all" rel="stylesheet">
+<link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/css/select2.min.css" type="text/css" media="screen" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/select2-bootstrap4-theme.css' %}">
+{% endblock %}
+
+{% block bootstrap4_extra_script %}
+{{ block.super }}
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/js/i18n/de.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+<script type="text/javascript">
+function toggleTools(enabled) {
+    $('#toolbar .global-tool').prop('disabled', !enabled);
+    if (enabled) {
+        $('#id_selected').show();
+    } else {
+        $('#id_selected').hide();
+    }
+
+    var count = $(".card.selected").length;
+    $('#id_count_sel').text(count);
+}
+
+$(document).ready(function() {
+    toggleTools(false);
+    $('#user-select').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_gallery').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_tags').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_assign_owner').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_assign_gallery').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_assign_tags').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_gallery option').clone().appendTo('#id_assign_gallery');
+    $('#id_tags option').clone().appendTo('#id_assign_tags');
+    $('#user-select option').clone().appendTo('#id_assign_owner');
+    $("#id_assign_owner").prepend("<option value='' selected='selected'>---------</option>");
+    $('#id_uploaded_by').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_upload').select2({ theme: 'bootstrap', width: '100%' });
+    var options = {
+    };
+
+    $('.image-container').on('click', function() {
+       if ($(this).parent().hasClass('selected')) {
+           $(this).parent().removeClass('selected');
+           if ($('.card.selected').length == 0) {
+               toggleTools(false);
+           }
+        } else {
+            $(this).parent().addClass('selected');
+            toggleTools(true);
+       }
+    });
+
+    $('#filter').click(function() {
+        $('#filterModal').modal();
+    });
+
+    $('#all').on('click', function() {
+        $('.card').addClass('selected');
+        toggleTools(true);
+    });
+    $('#none').on('click', function() {
+        $('.card').removeClass('selected');
+        toggleTools(false);
+    });
+
+    $('#confirm_delete').on('click', function() {
+        $('#deleteModal').modal(options);
+    });
+
+    $('#id_slideshow').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+        window.document.location.href = "{% url 'slideshow' %}?ids="+ids;
+    });
+
+    $('#show_in_map').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+        window.document.location.href = "{% url 'photomap' %}?ids="+ids;
+    });
+
+    $('#delete').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+        $.ajax({
+            type: 'POST',
+            url: '/processdelete/',
+            data: {
+                'ids[]': ids,
+                'csrfmiddlewaretoken': "{{ csrf_token }}"
+            },
+            success: function(){
+                $(".card.selected").remove();
+                $('#id_selected').hide();
+                $('#id_count_sel').text('');
+
+            },
+            error: function (xhr, ajaxOptions, thrownError){
+                alert('error!');
+            }
+        });
+    });
+
+    $('#assign').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+
+        var gallery = $('#id_assign_gallery').val();
+        var tags = $('#id_assign_tags').val();
+        var owner = $('#id_assign_owner').val();
+
+        $.ajax({
+            type: 'POST',
+            url: '/processassign/',
+            data: {
+                'ids[]': ids,
+                'gallery': gallery,
+                'owner': owner,
+                'tags[]': tags,
+                'csrfmiddlewaretoken': "{{ csrf_token }}"
+            },
+            success: function() {
+                if (owner) {
+                    location.reload();
+                } else {
+                    $('#id_assign_tags').val(null).trigger('change');
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError){
+                alert('error!');
+            }
+        });
+    });
+
+    $('#download').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+        $.ajax({
+            type: 'POST',
+            url: '/preparedownload/',
+            data: {
+                'ids[]': ids,
+                'csrfmiddlewaretoken': "{{ csrf_token }}"
+            },
+            success: function(){
+                $('#downloadModal').modal();
+            },
+            error: function (xhr, ajaxOptions, thrownError){
+                alert('error!');
+            }
+        });
+    });
+
+    $('#id_download').click(function() {
+        $('#downloadModal').modal('hide');
+    });
+
+    $('#select_share').click(function() {
+        $('#shareModal').modal(options);
+    });
+
+    $('#share').on('click', function() {
+        var ids = $.map($(".card.selected"), function (item) {
+            return $(item).attr("id");
+        });
+        var users = $.map($('#user-select').find(':selected'), function (item) {
+            return $(item).val();
+        });
+        $.ajax({
+            type: 'POST',
+            url: '/processshare/',
+            data: {
+                'ids[]': ids,
+                'users[]': users,
+                'csrfmiddlewaretoken': "{{ csrf_token }}"
+            },
+            success: function(){
+                $('#user-select').val(null).trigger('change');
+                if (ids.lenght > 1) {
+                    alert(ids.length + ' Fotos geteilt.');
+                } else {
+                    alert(ids.length + ' Foto geteilt.');
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError){
+                alert('error!');
+            }
+        });
+    });
+
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12" id="toolbar">
+        <div class="panel">
+            <button class="btn btn-secondary" id="filter" title="{% trans 'Filter' %}">
+                <i class="fas fa-filter"></i>
+            </button>
+            <a href="{% url 'reset' %}" class="btn btn-secondary" title="{% trans 'Remove filter' %}">
+                <i class="far fa-times"></i>
+            </a>
+            <span class="tool-separator"></span>
+            <button class="btn btn-secondary" id="all" title="{% trans 'select all' %}">
+                <i class="fas fa-th"></i>
+            </button>
+            <button class="btn btn-secondary" id="none" title="{% trans 'select none' %}">
+                <i class="fal fa-th"></i>
+            </button>
+            <span class="badge badge-secondary badge-info badge-lg" id="id_selected" style="display:none;">
+                <span id="id_count_sel"></span>
+            </span>
+            <span class="tool-separator"></span>
+            <button id="id_slideshow" class="btn btn-secondary global-tool" id="map" title="{% trans 'show selected in map' %}">
+                <i class="fal fa-presentation"></i>
+            </button>
+            <button id="show_in_map" class="btn btn-secondary global-tool" id="map" title="{% trans 'show selected in map' %}">
+                <i class="fal fa-map"></i>
+            </button>
+            <span class="tool-separator"></span>
+            <button class="btn btn-secondary global-tool" data-toggle="modal" data-target="#categoryModal" title="{% trans 'categorize' %}">
+                <i class="fal fa-box-open"></i>
+            </button>
+            <button id="confirm_delete" class="btn btn-secondary global-tool" title="{% trans 'delete' %}">
+                <i class="fal fa-trash-alt"></i>
+            </button>
+            <span class="tool-separator"></span>
+            <button id="download" class="btn btn-secondary global-tool" id="download" title="{% trans 'download' %}">
+                <i class="fal fa-download"></i>
+            </button>
+            <button id="select_share" class="btn btn-secondary global-tool" title="{% trans 'share' %}">
+                <i class="fal fa-share-all"></i>
+            </button>
+            <span class="tool-separator"></span>
+        </div>
+    </div>
+</div>
+
+
+<!-- The Modals -->
+<div class="modal fade" id="filterModal">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'Filter' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <form action="" method="get">
+                {% csrf_token %}
+                {% bootstrap_form filter.form %}
+                <button class="btn btn-primary" type="submit">
+                    <i class='far fa-filter'></i>
+                </button>
+            </form>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'Delete photos' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <p>
+                {% trans 'Do you really want to delete the selected photos?' %}
+            </p>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+            <button id="delete" type="button" class="btn btn-danger" data-dismiss="modal">
+                <i class="fal fa-trash"></i>
+                {% trans 'delete' %}
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="shareModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">{% trans 'Share photos' %}</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body">
+                <label for="user-select">{% trans 'User' %}</label>
+                <select id="user-select" multiple>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">
+                            {% if user.get_full_name %}
+                            {{ user.get_full_name }}
+                            {% else %}
+                            {{ user.username }}
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button id="share" type="button" class="btn btn-primary" data-dismiss="modal">
+                    <i class="fal fa-share"></i>
+                    {% trans 'share' %}
+                </button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fal fa-times"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="downloadModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'download' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <p>
+                {% trans 'Download compressed photos.' %}
+            </p>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+            <a href="{% url 'processdownload' %}" class="btn btn-primary" id="id_download"
+               title="{% trans 'download' %}">
+                <i class="fal fa-download"></i>
+            </a>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="categoryModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'categorize photos' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-12">
+                    <form action="" method="get">
+                    <div class="form-group is-valid">
+                        <label for="id_assign_gallery">{% trans 'gallery' %}</label>
+                        <select name="gallery" class="form-control is-valid" title="" id="id_assign_gallery"></select>
+                    </div>
+                    <div class="form-group is-valid">
+                        <label for="id_assign_tags">{% trans 'tags' %}</label>
+                        <select name="tags" class="form-control is-valid" title="" id="id_assign_tags" multiple="multiple"></select>
+                    </div>
+                    <div class="form-group is-valid">
+                        <label for="id_assign_owner">{% trans 'Owner' %}</label>
+                        <select name="owner" class="form-control is-valid" title="" id="id_assign_owner"></select>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal" id="assign">
+                <i class="fal fa-box-open"></i>
+                {% trans 'assign' %}
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12" id="photocontent">
+        <div class="panel">
+        {% block photolist %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2 mb-5">
+    <div class="col-12">
+    {% if is_paginated %}
+        {% bootstrap_pagination page_obj extra=request.GET.urlencode %}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -16,7 +16,6 @@ import sys
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -30,15 +29,18 @@ INSTALLED_APPS = [
     'photos',
     'usersettings',
     'django_filters',
-    'tempus_dominus',
+    'django_select2',
     'accounts',
     'bootstrap4',
+    'bootstrap_datepicker_plus',
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_swagger',
+    'drf_spectacular',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -68,7 +70,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'photos.wsgi.application'
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 
@@ -78,7 +79,6 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
@@ -87,61 +87,62 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-FILE_UPLOAD_PERMISSIONS = 0o644
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 LOGIN_REDIRECT_URL = '/'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.TokenAuthentication',
-    ),
-    # 'DEFAULT_PERMISSION_CLASSES': (
-    #     'rest_framework.permissions.IsAuthenticated',
-    # )
+# Settings for django-bootstrap4
+BOOTSTRAP4 = {
+    "include_jquery": True,
 }
 
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'api_key': {
-            'type': 'apiKey',
-            'in': 'header',
-            'name': 'Authorization'
-        }
-    },
-    'USE_SESSION_AUTH': False,
-    'JSON_EDITOR': True,
-    'SHOW_REQUEST_HEADERS': True,
-    'DOC_EXPANSION': "list"
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        # 'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 ##################
 # FileBrowser    #
 ##################
+FILE_UPLOAD_PERMISSIONS = 0o644
 FILEBROWSER_DIRECTORY = 'photos/'
-FILEBROWSER_VERSIONS_BASEDIR = 'photos/_versions'
+FILEBROWSER_VERSIONS_BASEDIR = '_versions/'
 FILEBROWSER_VERSIONS = {
-    'admin_thumbnail': {'verbose_name': 'Admin Thumbnail', 'width': 60, 'height': 60, 'opts': 'crop'},
-    'thumbnail': {'verbose_name': 'Thumbnail', 'width': 400, 'height': 400, 'opts': 'crop'}
+    'slide_indicator': {'verbose_name': 'Slideshow Indicator', 'width': 40, 'height': 40, 'opts': 'crop', 'transpose': True},
+    'admin_thumbnail': {'verbose_name': 'Admin Thumbnail', 'width': 60, 'height': 60, 'opts': 'crop', 'transpose': True},
+    'thumbnail': {'verbose_name': 'Thumbnail', 'width': 400, 'height': 400, 'opts': 'crop', 'transpose': True}
 }
 FILEBROWSER_ADMIN_VERSIONS = ['thumbnail']
 FILEBROWSER_ADMIN_THUMBNAIL = 'admin_thumbnail'
-
-
-##################
-# BOOTSTRAP 4    #
-##################
-BOOTSTRAP4 = {
-    # wird sonst 2-mal geladen...
-    'javascript_in_head': True,
-    'theme_url': '/static/bootstrap-4/css/yeti.min.css',
-    # 'theme_url': '/static/bootstrap-4/css/materia.min.css',
+FILEBROWSER_EXTENSIONS = {
+    'Image': ['.jpg', '.jpeg', '.gif', '.png', '.tif', '.tiff'],
+    'Style': ['.css']
 }
+
+FILEBROWSER_VERSION_PROCESSORS = [
+    'filebrowser.utils.scale_and_crop',
+    'photos.models.transpose_processor',
+]
 
 TEMPUS_DOMINUS_LOCALIZE = True
 
 DEFAULT_PHOTOS_RECENT = 10
 
-#################1#
+DEFAULT_THEME = '/static/css/bootstrap.min.css'
+
+##################
 # LOCAL SETTINGS #
 ##################
 
@@ -156,9 +157,10 @@ DEFAULT_PHOTOS_RECENT = 10
 f = os.path.join(BASE_DIR, "photos/localsettings.py")
 if os.path.exists(f):
     import sys
-    import imp
+    import importlib
+
     module_name = "photos.localsettings"
-    module = imp.new_module(module_name)
+    module = importlib.import_module(module_name)
     module.__file__ = f
     sys.modules[module_name] = module
     exec(open(f, "rb").read())

@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-from django.utils.translation import ugettext_lazy as _
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 from django import forms
-from tempus_dominus.widgets import DateTimePicker
+from photos import settings
+from django_select2.forms import Select2Widget, Select2MultipleWidget
 
-from .models import Photo
+from .models import Photo, Gallery
+
+lang = getattr(settings, "LANGUAGE_CODE", 'de')
 
 
 class PhotoForm(forms.ModelForm):
@@ -11,28 +14,32 @@ class PhotoForm(forms.ModelForm):
     class Meta:
         model = Photo
         fields = (
-            'name', 'event', 'tags', 'owner',
+            'name', 'gallery', 'tags', 'owner',
             'timestamp', 'latitude', 'longitude'
         )
         widgets = {
-            'timestamp': DateTimePicker(
-                    options={
-                        'useCurrent': True,
-                        'collapse': False,
-                    },
-                    attrs={
-                        'append': 'fa fa-calendar',
-                        'icon_toggle': True,
-                    }
-                )
+            'gallery': Select2Widget(attrs={'data-theme': 'bootstrap'}),
+            'owner': Select2Widget(attrs={'data-theme': 'bootstrap'}),
+            'tags': Select2MultipleWidget(attrs={'data-theme': 'bootstrap'}),
+            'timestamp': DateTimePickerInput(
+                options={
+                    'format': "DD.MM.YYYY HH:mm",
+                    'locale': lang,
+                },
+            )
         }
 
 
-PhotoFormSet = forms.modelformset_factory(Photo, form=PhotoForm, extra=0)
+class GalleryForm(forms.ModelForm):
 
-
-class UploadForm(forms.Form):
-
-    event = forms.CharField(label=_('event'), max_length=255, required=False)
-    tags = forms.CharField(label=_('tags'), max_length=255, required=False)
-
+    class Meta:
+        model = Gallery
+        fields = {'name', 'timestamp'}
+        widgets = {
+            'timestamp': DateTimePickerInput(
+                options={
+                    'format': "DD.MM.YYYY HH:mm",
+                    'locale': lang,
+                },
+            )
+        }

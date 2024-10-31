@@ -7,4 +7,4 @@ from .models import UserSettings
 class UserSettingsForm(ModelForm):
     class Meta:
         model = UserSettings
-        fields = ['recent', ]
+        fields = ['photos_per_page', 'recent', 'slide_time', 'theme']

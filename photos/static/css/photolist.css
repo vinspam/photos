@@ -4,25 +4,11 @@
 
 .card {
     min-width: 200px;
-    max-width: 400px;
-    height: 280px;
     margin-bottom: 15px !important;
 }
 
-.card-body {
-    position: absolute;
-    height: 50px;
-    bottom: 10px;
-}
-
-.image-container {
-    background-color: #fff;
-    padding: 0px;
-    margin: 0px;
-}
 
 .img-thumbnail {
-    height: 220px;
     object-fit: cover;
     border: none;
     padding: 0;
@@ -32,7 +18,8 @@
     height: 22px;
     width: 22px;
     border-radius: 50%;
-    border: 1px solid white;
+    border: 1px solid var(--light);
+    background-color: var(--light);
     display: none;
     position: absolute;
     right: 15px;
@@ -41,24 +28,28 @@
 }
 
 .dot svg {
-    display: none;
-}
-
-.card.selected .dot {
-    background-color: white;
     display: inline;
 }
 
-.image-container:hover .dot {
+.selected .dot {
+    height: 22px;
+    width: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--light);
     display: inline;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    z-index: 99;
 }
 
-.card.selected .dot svg {
+.image-container:hover .hover-dot {
     display: inline;
 }
 
 .tool {
     padding: 6px;
+    text-decoration: none;
 }
 .tool:hover {
     text-decoration: none;
@@ -69,14 +60,11 @@
     width: 100%;
 }
 
-.toolbar a, .toolbar span {
-    color: #999;
-}
-.toolbar a:hover, .toolbar span:hover {
-    color: #000;
-}
-
-/* remvove hr from title since here is no title */
+/* remove hr from title since here is no title */
 .title-hr {
     display: none;
+}
+
+.badge-lg {
+    font-size: 16px;
 }

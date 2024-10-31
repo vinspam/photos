@@ -3,7 +3,6 @@
 
 {% block bootstrap4_extra_head %}
 {{ block.super }}
-
 {% endblock %}
 
 {% block title %}{% trans 'settings' %}{% endblock %}
@@ -14,8 +13,7 @@
 
     <div class="row">
         <div class="col-md-4 offset-md-4">
-            {% bootstrap_form settingsform %}
-
+            {% bootstrap_form settingsform size='small' %}
             {% buttons %}
                 <button class="btn btn-primary" name="submit" type="submit" formnovalidate>
                     <i class="far fa-check"></i>

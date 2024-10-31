@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load i18n static bootstrap4 %}
+
+{% block title %}
+    {% if photo.name %}
+    {{ photo.name }}
+    {% else %}
+    {{ photo.filename }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 text-center">
+            <img class="img-fluid" src="{{ photo.imagefile.url }}" alt="{{ photo.name }}" style="max-height: 85vh; width: auto;">
+        </div>
+    </div>
+    <div class="row" style="margin-top: 1rem;">
+        <div class="col">
+            <a href="{% url 'cache' %}" class="btn btn-primary"
+               role=button" title="{% trans 'back' %}">
+                    <i class="fal fa-check"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

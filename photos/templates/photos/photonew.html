@@ -3,82 +3,256 @@
 
 {% block bootstrap4_extra_head %}
 {{ block.super }}
+<link rel="stylesheet" href="{% static 'css/photonew.css' %}">
 <link rel="stylesheet" href="{% static 'css/dropzone.css' %}">
+<link href="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/css/select2.min.css" type="text/css" media="screen" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/select2-bootstrap4-theme.css' %}">
+<style>
+.select2-selection { width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block bootstrap4_extra_script %}
+{{ block.super }}
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/select2/4.0.12/js/i18n/de.js"></script>
 <script src="{% static 'js/dropzone.js' %}"></script>
+<script type="text/javascript">
+Dropzone.options.myDropzone = {
+    url: "/file-upload",
+    paramName: "file",
+    autoProcessQueue: false,
+    uploadMultiple: true,
+    parallelUploads: 100,
+    maxFiles: 100,
+    acceptedFiles: "image/*",
+    dictDefaultMessage: "{% trans 'Drop files here to upload' %}",
+
+    init: function () {
+
+        var submitButton = document.querySelector("#submit-all");
+        var wrapperThis = this;
+
+        submitButton.addEventListener("click", function () {
+            wrapperThis.processQueue();
+        });
+
+        this.on("addedfile", function (file) {
+
+            // Create the remove button
+            var removeButton = Dropzone.createElement("<button class='btn btn-sm btn-secondary remove'>{% trans 'Remove File' %}</button>");
+
+            // Listen to the click gallery
+            removeButton.addEventListener("click", function (e) {
+                // Make sure the button click doesn't submit the form:
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Remove the file preview.
+                wrapperThis.removeFile(file);
+                // If you want to the delete the file on the server as well,
+                // you can do the AJAX request here.
+            });
+
+            // Add the button to the file preview element.
+            file.previewElement.appendChild(removeButton);
+        });
+
+        this.on('sendingmultiple', function (data, xhr, formData) {
+            $('#submit-all').addClass('disabled');
+            $('#id_upload_icon').remove();
+            $('#submit-all').append('<i id="id_spinner" class="fas fa-spinner fa-pulse"></i>');
+            formData.append(
+                "gallery",
+                $("#id_gallery_select option:selected").text()
+            );
+            formData.append(
+                "tags",
+                $("#id_tag_select option:selected").map(function () {
+                    return $(this).text();
+                }).get().join(';')
+            );
+            formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+        });
+
+        this.on("success", function() {
+            window.location = "{% url 'photolist' %}";
+        });
+
+        this.on("error", function() {
+            $('#submit-all').removeClass('disabled');
+        });
+    }
+};
+
+function update_gallery_options(selected) {
+    $.ajax({
+        type: 'GET',
+        url: '/photos/galleries/',
+        success: function(galleries){
+            for (e in galleries) {
+                if (selected === galleries[e].id) {
+                    $('#id_gallery_select')
+                    .append($("<option selected></option>")
+                        .attr("value",galleries[e].id)
+                        .text(galleries[e].name));
+                } else {
+                    $('#id_gallery_select')
+                        .append($("<option></option>")
+                            .attr("value",galleries[e].id)
+                            .text(galleries[e].name));
+                }
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError){
+            console.log('No galleries found')
+        }
+    });
+}
+
+function update_tag_options(selected) {
+    $.ajax({
+        type: 'GET',
+        url: '/photos/tags/',
+        success: function(tags){
+            for (t in tags) {
+                if (selected === tags[t].id) {
+                    $('#id_tag_select')
+                    .append($("<option selected></option>")
+                        .attr("value",tags[t].id)
+                        .text(tags[t].name));    
+                } else {
+                    $('#id_tag_select')
+                        .append($("<option></option>")
+                            .attr("value",tags[t].id)
+                            .text(tags[t].name));
+                }
+            }
+        },
+        error: function (xhr, ajaxOptions, thrownError){
+            alert('Error fetching tags!');
+        }
+    });
+}
+
+$(document).ready(function() {
+
+    $('#id_gallery_select').select2({ theme: 'bootstrap', width: '100%' });
+    $('#id_tag_select').select2({ theme: 'bootstrap', width: '100%' });
+
+    $('#id_gallery_add').click(function() {
+        $('#galleryAddModal').modal();
+    });
+    $('#id_add_gallery').click(function() {
+        var new_gallery = $('#id_new_gallery').val();
+        $('#id_gallery_select')
+            .append($("<option selected></option>")
+            .attr("value",new_gallery).text(new_gallery));
+    });
+
+    $('#id_tag_add').click(function() {
+        $('#tagAddModal').modal();
+    });
+    $('#id_add_tag').click(function() {
+        var new_tag = $('#id_new_tag').val();
+        $('#id_tag_select')
+            .append($("<option selected></option>")
+            .attr("value",new_tag).text(new_tag)); 
+    });
+
+    update_gallery_options();
+    update_tag_options();
+});
+</script>
 {% endblock %}
 
 {% block title %}{% trans 'Upload new photos' %}{% endblock %}
 
-{% block bootstrap4_extra_script %}
-<script type="text/javascript">
-
-    Dropzone.options.myDropzone = {
-        url: "/file-upload",
-        paramName: "file",
-        autoProcessQueue: false,
-        uploadMultiple: true,
-        parallelUploads: 100,
-        maxFiles: 100,
-        acceptedFiles: "image/*",
-        dictDefaultMessage: "{% trans 'Drop files here to upload' %}",
-
-        init: function () {
-
-            var submitButton = document.querySelector("#submit-all");
-            var wrapperThis = this;
-
-            submitButton.addEventListener("click", function () {
-                wrapperThis.processQueue();
-            });
-
-            this.on("addedfile", function (file) {
-
-                // Create the remove button
-                var removeButton = Dropzone.createElement("<button class='btn btn-sm btn-secondary remove'>{% trans 'Remove File' %}</button>");
-
-                // Listen to the click event
-                removeButton.addEventListener("click", function (e) {
-                    // Make sure the button click doesn't submit the form:
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    // Remove the file preview.
-                    wrapperThis.removeFile(file);
-                    // If you want to the delete the file on the server as well,
-                    // you can do the AJAX request here.
-                });
-
-                // Add the button to the file preview element.
-                file.previewElement.appendChild(removeButton);
-            });
-
-            this.on('sendingmultiple', function (data, xhr, formData) {
-                formData.append("event", $("#id_event").val());
-                formData.append("tags", $("#id_tags").val());
-                formData.append("csrfmiddlewaretoken", "{{ csrf_token }}");
-            });
-
-            this.on("success", function() {
-                window.location = "{% url 'photolist' %}";
-            });
-        }
-    };
-</script>
-{% endblock %}
-
 {% block content %}
+<div class="modal fade" id="galleryAddModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'Add gallery' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <label for="id_new_gallery">{% trans 'gallery' %}</label>
+            <input type="text" name="gallery" autofocus maxlength="254" class="form-control" placeholder="{% trans 'gallery' %}" id="id_new_gallery" />
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+            <button id="id_add_gallery" type="button" class="btn btn-primary" data-dismiss="modal">
+                <i class="fal fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="tagAddModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h4 class="modal-title">{% trans 'Add tag' %}</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <label for="id_new_tag">{% trans 'tag' %}</label>
+            <input type="text" name="tag" autofocus maxlength="254" class="form-control" placeholder="{% trans 'tag' %}" id="id_new_tag" />
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+            <button id="id_add_tag" type="button" class="btn btn-primary" data-dismiss="modal">
+                <i class="fal fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <i class="fal fa-times"></i>
+            </button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
 
  <form action="" enctype="multipart/form-data" method="post">
+{% csrf_token %}
  <div class="container-fluid">
     <div class="row">
         <div class="col">
             <div class="form-group">
-                <label for="id_event">{% trans 'event' %}</label>
-                <input type="text" name="event" autofocus maxlength="254" class="form-control" placeholder="{% trans 'event' %}" id="id_event" />
+                <label for="id_gallery_select">{% trans 'gallery' %}</label>
+                <button type="button" class="btn btn-sm btn-success btn-add" id="id_gallery_add">
+                    <i class="fal fa-plus"></i>
+                </button>
+                <div class="input-group">
+                    <select id="id_gallery_select" class="form-control" autofocus>
+                        <option value="">----------</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group">
-                <label for="id_tags">{% trans 'tags' %}</label>
-                <input type="text" name="tags" class="form-control" placeholder="tags" id="id_tags" />
+                <label for="id_tag_select">{% trans 'tags' %}</label>
+                <button type="button" class="btn btn-sm btn-success btn-add" id="id_tag_add">
+                    <i class="fal fa-plus"></i>
+                </button>
+                <select id="id_tag_select" multiple></select>
             </div>
         </div>
     </div>
@@ -91,10 +265,13 @@
 
  </div>
 </form>
+
 <div class="container-fluid">
     <div class="row" style="margin-top: 10px;">
         <div class="col">
-            <button class="btn btn-secondary" type="submit" id="submit-all">{% trans 'uplaod' %}</button>
+            <button class="btn btn-secondary" type="button" id="submit-all" title="{% trans 'uplaod' %}">
+                <i id="id_upload_icon" class="fal fa-upload"></i>
+            </button>
         </div>
     </div>
 </div>

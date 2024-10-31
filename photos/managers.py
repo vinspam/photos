@@ -3,9 +3,6 @@ from django.db.models import Manager, Q
 
 
 class PhotoVisibleManager(Manager):
-    """
-    For non-staff users, return items with a visible status.
-    """
 
     def visible(self, for_user=None):
         return self.filter(
@@ -13,5 +10,21 @@ class PhotoVisibleManager(Manager):
             Q(shared=for_user)
         )
 
+    def shared(self, for_user=None):
+        return self.filter(
+            owner=for_user,
+            shared__isnull=False
+        )
 
-# TODO: Visible manager for events??
+
+class GalleryVisibleManager(Manager):
+
+    def visible(self, for_user=None):
+        if for_user is None:
+            return self.all()
+        return self.filter(
+            visible_for=for_user
+        )
+
+
+

@@ -1,40 +1,47 @@
 import django_filters
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django_filters.widgets import RangeWidget
 
-from .models import Photo, Event, Tag
+from .models import Photo, Gallery, Tag
 
 
 class PhotoFilter(django_filters.FilterSet):
     class Meta:
         model = Photo
         fields = [
-            'event', 'tags', 'timestamp',
+            'gallery', 'tags', 'timestamp',
             'uploaded', 'uploaded_by', 'upload'
         ]
 
-    event = django_filters.ModelChoiceFilter(
-        queryset=Event.objects.all(),
+    gallery = django_filters.ModelChoiceFilter(
+        queryset=Gallery.objects.all(),
+        label=_('gallery'),
     )
     tags = django_filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
     )
-    timestamp = django_filters.DateFromToRangeFilter()
-    uploaded = django_filters.DateFromToRangeFilter()
+    timestamp = django_filters.DateFromToRangeFilter(
+        widget=RangeWidget(attrs={'type': 'date'})
+    )
+    uploaded = django_filters.DateFromToRangeFilter(
+        widget=RangeWidget(attrs={'type': 'date'})
+    )
     uploaded_by = django_filters.ModelChoiceFilter(
         queryset=User.objects.all()
     )
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+    order = django_filters.OrderingFilter(
+        choices=(
+            ('gallery', _('gallery')),
+            ('uploaded', _('Uploaded')),
+            ('timestamp', _('Timestamp'))
+        ),
+    )
+
+    def __init__(self, request, *args, **kwargs):
         super(PhotoFilter, self).__init__(*args, **kwargs)
-        visibles = Photo.objects.filter(
-            Q(owner=user) |
-            Q(shared=user)
+        self.filters['gallery'].queryset = Gallery.objects.visible(
+            for_user=request.user
         )
-        # Filtering events doesn't allow assign photo to empty event!
-        # self.filters['event'].queryset = Event.objects.filter(
-        #     photo__pk__in=visibles
-        # ).distinct()
     

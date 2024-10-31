@@ -1,9 +1,9 @@
 {% extends 'bootstrap4/bootstrap4.html' %}
-{% load i18n bootstrap4 static %}
+{% load i18n bootstrap4 static user_tags %}
 
 {% block bootstrap4_extra_head %}
 {{ block.super }}
-{% bootstrap_javascript jquery='full' %}
+<meta name="theme-color" content="{% user_theme_primary_color request.user %}">
 <link rel="apple-touch-icon" sizes="57x57" href="{% static 'favicon/apple-icon-57x57.png'%}">
 <link rel="apple-touch-icon" sizes="60x60" href="{% static 'favicon/apple-icon-60x60.png'%}">
 <link rel="apple-touch-icon" sizes="72x72" href="{% static 'favicon/apple-icon-72x72.png'%}">
@@ -17,22 +17,23 @@
 <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon/favicon-32x32.png'%}">
 <link rel="icon" type="image/png" sizes="96x96" href="{% static 'favicon/favicon-96x96.png'%}">
 <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon/favicon-16x16.png'%}">
-<link rel="manifest" href="{% static 'favicon/manifest.json'%}">
 <meta name="msapplication-TileColor" content="#ffffff">
 <meta name="msapplication-TileImage" content="{% static 'favicon/ms-icon-144x144.png'%}">
 <meta name="theme-color" content="#ffffff">
 
-<link rel="stylesheet" href="{% static 'font-awesome-5/css/all.min.css' %}">
+{% user_theme request.user %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/animate.css' %}" type="text/css" />
 <link rel="stylesheet" type="text/css" href="{% static 'css/photos.css' %}"/>
+{% endblock %}
 
-<script defer src="{% static 'font-awesome-5/js/all.min.js' %}"></script>
+{% block bootstrap4_extra_script %}
+{{ block.super }}
 {% endblock %}
 
 {% block bootstrap4_title %}{% trans 'Photos' %}{% endblock %}
 
-
 {% block bootstrap4_content %}
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <a class="navbar-brand" href="{% url 'photolist' %}">{% trans 'Photos' %}</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -53,22 +54,26 @@
                         {% trans 'uplaod' %}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{% url 'photolist' %}">
+                    <a class="dropdown-item" href="{% url 'photolist' %}{% recent_date_param request.user %}">
                         {% trans 'recent photos' %}
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="{% url 'photolist' %}?viewtype=event">
-                        {% trans 'by event' %}
+                    <a class="dropdown-item" href="{% url 'photos_by' 'gallery' %}">
+                        {% trans 'by gallery' %}
                     </a>
-                    <a class="dropdown-item" href="{% url 'photolist' %}?viewtype=upload">
+                    <a class="dropdown-item" href="{% url 'photos_by' 'upload' %}">
                         {% trans 'by import' %}
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{% url 'myshares' %}">
+                        {% trans 'My shares' %}
                     </a>
                 </div>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'eventlist' %}">
+                <a class="nav-link" href="{% url 'gallerylist' %}">
                     <i class="far fa-calendar"></i>
-                    {% trans 'events' %}
+                    {% trans 'galleries' %}
                 </a>
             </li>
             <li class="nav-item">
@@ -112,13 +117,6 @@
                     {% endif %}
                 </div>
             </li>
-            {% else %}
-            <li class="nav-item">
-                <a class="dropdown-item" href="{% url 'login' %}">
-                    <span class="far fa-sign-in"></span>
-                    {% trans 'Log in' %}
-                </a>
-            </li>
             {% endif %}
         </ul>
     </div>
@@ -128,7 +126,7 @@
     <div class="row">
         <div class="col-md-12">
             <h3 class="title-block">{% block title %}{% endblock %}</h3>
-            <hr class="title-hr"/>
+            {% block title_sep %}<hr class="title-hr"/>{% endblock %}
 
             {% bootstrap_messages %}
             {% block content %}{% endblock %}

@@ -3,7 +3,7 @@
 
 {% block bootstrap4_extra_head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/eventlist.css' %}">
+<link rel="stylesheet" href="{% static 'css/gallerylist.css' %}">
 {% endblock %}
 
 {% block title %}{% trans 'tags' %}{% endblock %}
@@ -18,19 +18,21 @@
                     {% for tag in taglist %}
                     {% get_visibles tag.photo_set.all user as visibles %}
                     {% if visibles.count > 0 %}
-                    <div class="card text-center" id="{{ event.id }}">
-                        <div class="image-container">
-                            {% for photo in visibles|slice:"0:3" %}
-                            <img class="img-responsive thumb img-thumbnail" src="{% version photo.imagefile 'thumbnail' %}" alt="{{ photo.name }}"
-                                style="transform: rotate({{forloop.counter|rotation}}deg);">
-                            {% endfor %}
-                        </div>
-                        <div class="card-body toolbar">
+                    <div class="card text-center" id="{{ gallery.id }}">
+                        <div class="card-header">
                             <h5 class="card-title">
                                 {{ tag.name }}
                                 <span class="badge badge-secondary">{{ visibles.count }}</span>
                             </h5>
-                            <a href="{% url 'photolist' %}?viewtype=event&tags={{tag.id}}" class="tool"
+                        </div>
+                        <div class="card-body toolbar">
+                            {% for photo in visibles|slice:"0:3" %}
+                            <img class="img-responsive thumb img-thumbnail" src="{% version photo.imagefile 'thumbnail' %}" alt="{{ photo.name }}"
+                                {% if visibles.count > 1 %}style="transform: rotate({{forloop.counter|rotation}}deg);"{% endif %}>
+                            {% endfor %}
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'photolist' %}?viewtype=gallery&tags={{tag.id}}" class="tool"
                             {% if visibles.count == 0 %}disabled="disabled{% endif %}"
                             title="{% trans 'view' %}">
                                 <i class="far fa-eye"></i>
@@ -48,6 +50,11 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <div class="row buttons">
+        <div class="col-12">
             <a href="{% url 'photolist' %}">
                 <button class="btn btn-primary" name="back" title="{% trans 'back' %}">
                     <i class="far fa-check"></i>
@@ -60,5 +67,6 @@
             </a>
         </div>
     </div>
+
 </div>
 {% endblock %}

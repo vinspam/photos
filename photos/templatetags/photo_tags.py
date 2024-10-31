@@ -1,18 +1,13 @@
 # -*- coding:utf-8 -*-
+import urllib
+from urllib.parse import urlencode
+
 from django import template
 from django.db.models import Q
 
+from photos.models import Photo, Gallery, Tag, Import
+
 register = template.Library()
-
-
-@register.simple_tag
-def cut_photos(photos, n):
-    """
-    cut list to max len
-    """
-    if n > 0:
-        photos = photos[:n]
-    return photos
 
 
 @register.simple_tag
@@ -29,3 +24,23 @@ def get_visibles(photos, user):
 def rotation(value):
     return value * 10 - 20
 
+
+@register.simple_tag
+def can_share(gallery_id, user):
+    """
+    Test, if user can share gallery,
+    user is owner of at least one
+    photo in gallery
+    :param gallery:
+    :return: boolean
+    """
+    return Photo.objects.filter(gallery__id=gallery_id, owner=user).count() > 0
+
+
+#remove_query_param request.request.get_full_path item
+@register.simple_tag
+def remove_query_param(request, item):
+    updated = request.GET.copy()
+    if item in updated:
+        del updated[item]
+    return request.path+'?'+updated.urlencode()

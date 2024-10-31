@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load i18n static bootstrap4 %}
+
+{% block bootstrap4_extra_head %}
+{{ block.super }}
+{{ form.media.css }}
+{% endblock %}
+
+{% block bootstrap4_extra_script %}
+{{ block.super }}
+{{ form.media.js }}
+{% endblock %}
+
+{% block title %}{% trans 'gallery' %}{% endblock %}
+
+{% block content %}
+<form method="post" class="from-horizontal" role="form">
+{% csrf_token %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="offset-md-3 col-md-6 col-12">
+            {% bootstrap_form form %}
+
+            {% buttons %}
+                <button class="btn btn-primary" name="submit" type="submit" formnovalidate>
+                    <i class="far fa-check"></i>
+                </button>
+                <button type="reset" onclick="location.href={% url 'gallerylist' %}" class="btn btn-secondary" role="button">
+                    <i class="far fa-times"></i>
+                </button>
+            {% endbuttons %}
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}
